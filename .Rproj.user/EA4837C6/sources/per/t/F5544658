@@ -1,0 +1,26 @@
+{
+    "id": "F5544658",
+    "path": "~/GitHub/gsEstimators/R/run_app.R",
+    "project_path": "R/run_app.R",
+    "type": "r_source",
+    "hash": "1928242455",
+    "contents": "",
+    "dirty": false,
+    "created": 1757352027671.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "8,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1757351896,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1757351896,
+    "read_only": false,
+    "read_only_alternatives": []
+}
