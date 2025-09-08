@@ -3,7 +3,7 @@
     "path": "~/GitHub/gsEstimators/R/app.R",
     "project_path": "R/app.R",
     "type": "r_source",
-    "hash": "2170113016",
+    "hash": "4273827952",
     "contents": "",
     "dirty": false,
     "created": 1757351918142.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "1779,1",
-        "scrollLine": "1766"
+        "cursorPosition": "1898,34",
+        "scrollLine": "39"
     },
     "folds": "",
-    "lastKnownWriteTime": 1757351926,
+    "lastKnownWriteTime": 1757352246,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1757351926440,
+    "last_content_update": 1757352246640,
     "read_only": false,
     "read_only_alternatives": []
 }

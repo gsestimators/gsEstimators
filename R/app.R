@@ -50,123 +50,235 @@ source("R/estimators/umvcue.R")
 source("R/estimators/ubc_mle.R")
 source("R/estimators/cbc_mle.R")
 
-h5("Stages"),
+# Define UI --------------------------------------------------------------------
+ui <- page_sidebar(
+  theme = bs_theme(bootswatch = "cerulean"),
+  title = "Group Sequential Estimators",
+  sidebar= sidebar(
+    #SIDEBAR INPUTS ----------------------------------------------------------------
 
-#numericInput for maximum number of stages
-numericInput(inputId = "maximum_stages",
-             label = HTML("Maximum number of trial stages:"),
-             min = 1,
-             max = NA,
-             value = 2,
-             step = 1),
+    #SelectInput for the type of endpoint used in the trial
+    tags$h5("Estimators"),
+    selectInput(inputId = "endpoint_type",
+                label = HTML("Select type of endpoint:"),
+                choices = c( "Binary",
+                             "Normal",
+                             "Time to Event"),
+                selected = "Binary"),
 
-#numericInput for stage realized
-numericInput(inputId = "stage_reached",
-             label = HTML("Trial stage reached:"),
-             min = 1,
-             max = NA,
-             value = 2,
-             step = 1),
+    #selectInput for the type of Binary trial
+    conditionalPanel(condition = "input.endpoint_type == 'Binary'",
+                     selectInput(inputId = "binary_trial_type",
+                                 label = HTML("Choose type of trial:"),
+                                 choices = c("Single-arm",
+                                             "Two-arm"),
+                                 selected = "Two-arm"
+                     )
+    ),
+
+    #selectInput for the type of Normal trial
+    conditionalPanel(condition = "input.endpoint_type == 'Normal'",
+                     selectInput(inputId = "normal_trial_type",
+                                 label = HTML("Choose type of trial:"),
+                                 choices = c("Single-arm",
+                                             "Parallel",
+                                             "Paired",
+                                             "Two Period Crossover"
+                                 ),
+                                 selected = "Parallel"
+                     )
+    ),
+
+    #selectInput for the type of Time to Event trial
+    conditionalPanel(condition = "input.endpoint_type == 'Time to Event'",
+                     selectInput(inputId = "time_to_event_trial_type",
+                                 label = HTML("Choose type of trial:"),
+                                 choices = c("Single-arm",
+                                             "Two-arm"),
+                                 selected = "Two-arm"
+                     )
+    ),
 
 
 
 
-#DEFINE UPPER AND LOWER STOPPING BOUNDS ----------------------------------------
-tags$hr(),
-tags$h5("Stoppping bounds"),
+    #CHOOSE WHICH ESTIMATOR TO CALCULATE -------------------------------------------
 
-#textInput the futility bounds for the trial
-textInput(inputId = "lower_bound",
-          label = HTML("Futility bounds (csv):"),
-          value = "-Inf"),
+    #SelectInput for Binary estimators
+    conditionalPanel(condition = "input.endpoint_type == 'Binary'",
+                     selectInput(inputId = "binary_estimator",
+                                 label = HTML("Choose estimator:"),
+                                 choices = c("Overall MLE" ,
+                                             "Stage 1 MLE" ,
+                                             "MUE",
+                                             "UMVUE",
+                                             "ubc-MLE",
+                                             "cMLE",
+                                             "cMUE",
+                                             "UMVCUE",
+                                             "cbc-MLE"),
+                                 selected = "Overall MLE"
+                     )
+    ),
 
-#textInput the superiority bounds for the trial
-textInput(inputId = "upper_bound",
-          label = HTML("Superiority bound (csv):"),
-          value = "2.797")
-),
+    #SelectInput for Time to Event estimators
+    conditionalPanel(condition = "input.endpoint_type == 'Time to Event'",
+                     selectInput(inputId = "time_to_event_estimator",
+                                 label = HTML("Choose estimator:"),
+                                 choices = c("Overall MLE",
+                                             "Stage 1 MLE",
+                                             "MUE",
+                                             "UMVUE",
+                                             "ubc-MLE",
+                                             "cMLE",
+                                             "cMUE",
+                                             "UMVCUE",
+                                             "cbc-MLE"),
+                                 selected = "Overall MLE"
+                     )
+    ),
+
+    #SelectInput for Normal estimators
+    conditionalPanel(condition = "input.endpoint_type == 'Normal'",
+                     selectInput(inputId = "normal_estimator",
+                                 label = HTML("Choose estimator:"),
+                                 choices = c("Overall MLE",
+                                             "Stage 1 MLE",
+                                             "MUE",
+                                             "UMVUE",
+                                             "ubc-MLE",
+                                             "cMLE",
+                                             "cMUE",
+                                             "UMVCUE",
+                                             "cbc-MLE"),
+                                 selected = "Overall MLE"
+                     )
+    ),
+
+
+
+
+    #INPUT INFORMATION ABOUT TRIAL STAGES ------------------------------------------
+    tags$hr(),
+    tags$h5("Stages"),
+
+    #numericInput for maximum number of stages
+    numericInput(inputId = "maximum_stages",
+                 label = HTML("Maximum number of trial stages:"),
+                 min = 1,
+                 max = NA,
+                 value = 2,
+                 step = 1),
+
+    #numericInput for stage realized
+    numericInput(inputId = "stage_reached",
+                 label = HTML("Trial stage reached:"),
+                 min = 1,
+                 max = NA,
+                 value = 2,
+                 step = 1),
+
+
+
+
+    #DEFINE UPPER AND LOWER STOPPING BOUNDS ----------------------------------------
+    tags$hr(),
+    tags$h5("Stoppping bounds"),
+
+    #textInput the futility bounds for the trial
+    textInput(inputId = "lower_bound",
+              label = HTML("Futility bounds (csv):"),
+              value = "-Inf"),
+
+    #textInput the superiority bounds for the trial
+    textInput(inputId = "upper_bound",
+              label = HTML("Superiority bound (csv):"),
+              value = "2.797")
+  ),
 
 
 
 
 
 
-#CONTROL PANEL INPUTS ----------------------------------------------------------
-layout_columns(
-  card(tags$h5("Control Panel"),
-       p("Card for defining the control input values used within each estimator function. Input single values as a number (e.g. 5.5) and multiple values
-            as a comma separated list (e.g. 1, 2, ..., 5)."),
-       br(),
+  #CONTROL PANEL INPUTS ----------------------------------------------------------
+  layout_columns(
+    card(tags$h5("Control Panel"),
+         p("Card for defining the control input values used within each
+           estimator function. Input single values labelled 'SV' as a number
+           (e.g. 5.5) and multiple values labelled 'MV' as a comma separated
+           list (e.g. 1, 2, ..., 5)."),
+         br(),
 
-       #numericInput for epsilon
-       fluidRow(
-         column( width = 6,
-                 tags$h6("Arguments for Density Approximation",
-                         style = "margin-top: -8px;"),
-                 numericInput(inputId = "epsilon",
-                              label = HTML("Epsilon (argument for probability density):"),
-                              max = 1,
-                              min = 1e-10,
-                              value = 1e-5)
-         )
-       ),
+         #numericInput for epsilon
+         fluidRow(
+           column( width = 6,
+                   tags$h6("Arguments for Density Approximation",
+                           style = "margin-top: -8px;"),
+                   numericInput(inputId = "epsilon",
+                                label = HTML("Epsilon (argument for probability density):"),
+                                max = 1,
+                                min = 1e-10,
+                                value = 1e-5)
+           )
+         ),
 
-       #ARGUMENTS FOR OPTIMIZE SEARCH REGION-------------------------------------------
+         #ARGUMENTS FOR OPTIMIZE SEARCH REGION-------------------------------------------
 
-       #Binary inputs
-       conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+         #Binary inputs
+         conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                  input.binary_estimator == 'ubc-MLE' ||
                  input.endpoint_type == 'Binary' &
                  input.binary_estimator == 'cbc-MLE'",
-                        fluidRow( column( width = 6,
-                                          tags$h6("Arguments for optimize",
-                                                  style = "margin-top: -8px;"),
-                                          textInput(inputId = "binary_search_region_optimize",
-                                                    label = HTML("Upper and lower search limits
+                          fluidRow( column( width = 6,
+                                            tags$h6("Arguments for optimize",
+                                                    style = "margin-top: -8px;"),
+                                            textInput(inputId = "binary_search_region_optimize",
+                                                      label = HTML("Upper and lower search limits
                                             (csv)"),
-                                                    value = "-1,1")
-                        )
-                        )
-       ),
+                                                      value = "-1,1")
+                          )
+                          )
+         ),
 
-       #Normal inputs
-       conditionalPanel(condition = "input.endpoint_type == 'Normal' &
+         #Normal inputs
+         conditionalPanel(condition = "input.endpoint_type == 'Normal' &
                  input.normal_estimator == 'ubc-MLE' ||
                  input.endpoint_type == 'Normal' &
                  input.normal_estimator == 'cbc-MLE'",
-                        fluidRow( column(width = 6,
-                                         tags$h6("Arguments for optimize",
-                                                 style = "margin-top: -8px;"),
-                                         textInput(inputId = "normal_search_region_optimize",
-                                                   label = HTML("Upper and lower search limits
+                          fluidRow( column(width = 6,
+                                           tags$h6("Arguments for optimize",
+                                                   style = "margin-top: -8px;"),
+                                           textInput(inputId = "normal_search_region_optimize",
+                                                     label = HTML("Upper and lower search limits
                                             (csv)"),
-                                                   value = "-10,10")
-                        )
-                        )
-       ),
+                                                     value = "-10,10")
+                          )
+                          )
+         ),
 
 
-       #NUMERICINPUT FOR STAGE TO CONDITION ON-----------------------------------------
-       fluidRow(
-         column( width = 6,
-                 conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+         #NUMERICINPUT FOR STAGE TO CONDITION ON-----------------------------------------
+         fluidRow(
+           column( width = 6,
+                   conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                              input.binary_estimator == 'cMLE' ||
                              input.endpoint_type == 'Normal' &
                              input.normal_estimator == 'cMLE'",
-                                  tags$h6("Conditional Stopping Stage",
-                                          style = "margin-top: -8px;"),
-                                  numericInput(inputId = "conditional_stop_stage",
-                                               label = HTML("Choose stage to condition on
+                                    tags$h6("Conditional Stopping Stage",
+                                            style = "margin-top: -8px;"),
+                                    numericInput(inputId = "conditional_stop_stage",
+                                                 label = HTML("Choose stage to condition on
                                        (must be greater than total stages):"),
-                                               min = 2,
-                                               max = 1000000,
-                                               value = 2)
-                 )
-         )
-       ),
+                                                 min = 2,
+                                                 max = 1000000,
+                                                 value = 2)
+                   )
+           )
+         ),
 
-       #ARGUMENTS FOR CALCULATION OF THE UMVUE AND UMVCUE -----------------------------
-       conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+         #ARGUMENTS FOR CALCULATION OF THE UMVUE AND UMVCUE -----------------------------
+         conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                           input.binary_estimator == 'UMVUE' ||
                           input.endpoint_type == 'Binary' &
                           input.binary_estimator == 'UMVCUE' ||
@@ -182,75 +294,75 @@ layout_columns(
                           input.normal_estimator == 'ubc-MLE' ||
                           input.endpoint_type == 'Normal' &
                           input.normal_estimator == 'cbc-MLE'",
-                        tags$h6("Arguments for Integrate Function",
-                                style = "margin-top: -8px;"),
-                        fluidRow(
+                          tags$h6("Arguments for Integrate Function",
+                                  style = "margin-top: -8px;"),
+                          fluidRow(
 
-                          #numericInput for relative tolerance
-                          column( width = 4,
-                                  numericInput(inputId = "relative_tolerance",
-                                               label = HTML("Relative Tolerance
+                            #numericInput for relative tolerance
+                            column( width = 4,
+                                    numericInput(inputId = "relative_tolerance",
+                                                 label = HTML("Relative Tolerance
                                          (argument for integrate):"),
-                                               min = 0.0001220703,
-                                               max = 1,
-                                               value = 0.0001220703)
-                          ),
+                                                 min = 0.0001220703,
+                                                 max = 1,
+                                                 value = 0.0001220703)
+                            ),
 
-                          #numericInput for absolute tolerance
-                          column( width = 4,
-                                  numericInput(inputId = "absolute_tolerance",
-                                               label = HTML("Absolute Tolerance
+                            #numericInput for absolute tolerance
+                            column( width = 4,
+                                    numericInput(inputId = "absolute_tolerance",
+                                                 label = HTML("Absolute Tolerance
                                          (argument for integrate):"),
-                                               max = 1,
-                                               min = 0.0001220703,
-                                               value = 0.0001220703)
-                          ),
+                                                 max = 1,
+                                                 min = 0.0001220703,
+                                                 value = 0.0001220703)
+                            ),
 
-                          #numericInput for number of subdivisions
-                          column( width = 4,
-                                  numericInput(inputId = "subdivisions",
-                                               label = HTML("Subdivisions
+                            #numericInput for number of subdivisions
+                            column( width = 4,
+                                    numericInput(inputId = "subdivisions",
+                                                 label = HTML("Subdivisions
                                          (argument for integrate):"),
-                                               max = 10000,
-                                               min = 100,
-                                               value = 100)
+                                                 max = 10000,
+                                                 min = 100,
+                                                 value = 100)
+                            )
                           )
-                        )
-       ),
+         ),
 
-       #ARGUMENTS FOR CALCULATION OF THE MUE ------------------------------------------
+         #ARGUMENTS FOR CALCULATION OF THE MUE ------------------------------------------
 
-       #textInput for upper and lower values of uniroot search region
-       conditionalPanel( condition = "input.endpoint_type == 'Binary' &
+         #textInput for upper and lower values of uniroot search region
+         conditionalPanel( condition = "input.endpoint_type == 'Binary' &
                   input.binary_estimator == 'MUE'||
                   input.endpoint_type == 'Binary' &
                   input.binary_estimator == 'cMUE'",
-                         tags$h6("Uniroot Search Region", style = "margin-top: -8px;"),
-                         fluidRow( column( width = 6,
-                                           textInput(inputId = "binary_search_region_uniroot",
-                                                     label = HTML("Upper and lower search limits
+                           tags$h6("Uniroot Search Region", style = "margin-top: -8px;"),
+                           fluidRow( column( width = 6,
+                                             textInput(inputId = "binary_search_region_uniroot",
+                                                       label = HTML("Upper and lower search limits
                                                (csv):"),
-                                                     value = "-1,1")
-                         )
-                         )
-       ),
+                                                       value = "-1,1")
+                           )
+                           )
+         ),
 
-       conditionalPanel( condition = "input.endpoint_type == 'Normal' &
+         conditionalPanel( condition = "input.endpoint_type == 'Normal' &
                   input.normal_estimator == 'MUE'||
                   input.endpoint_type == 'Normal'&
                   input.normal_estimator == 'cMUE'",
-                         tags$h6("Uniroot Search Region", style = "margin-top: -8px;"),
-                         fluidRow( column( width = 6,
-                                           textInput(inputId = "normal_search_region_uniroot",
-                                                     label = HTML("Upper and lower search limits
+                           tags$h6("Uniroot Search Region", style = "margin-top: -8px;"),
+                           fluidRow( column( width = 6,
+                                             textInput(inputId = "normal_search_region_uniroot",
+                                                       label = HTML("Upper and lower search limits
                                                (csv):"),
-                                                     value = "-10,10")
-                         )
-                         )
-       ),
+                                                       value = "-10,10")
+                           )
+                           )
+         ),
 
 
-       conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+         conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                           input.binary_estimator == 'MUE' ||
                           input.endpoint_type == 'Binary' &
                           input.binary_estimator == 'cMUE' ||
@@ -258,366 +370,367 @@ layout_columns(
                           input.normal_estimator == 'MUE' ||
                           input.endpoint_type == 'Normal' &
                           input.normal_estimator == 'cMUE'",
-                        tags$h6("Arguments for Uniroot" ,
-                                style = "margin-top: -8px;"),
-                        fluidRow(
+                          tags$h6("Arguments for Uniroot" ,
+                                  style = "margin-top: -8px;"),
+                          fluidRow(
 
-                          #numericInput for tolerance
-                          column( width = 6,
-                                  numericInput(inputId = "tolerance",
-                                               label = HTML("Tolerance:"),
-                                               max = 1,
-                                               min = 0.0001220703,
-                                               value = 0.0001220703)
-                          ),
+                            #numericInput for tolerance
+                            column( width = 6,
+                                    numericInput(inputId = "tolerance",
+                                                 label = HTML("Tolerance:"),
+                                                 max = 1,
+                                                 min = 0.0001220703,
+                                                 value = 0.0001220703)
+                            ),
 
-                          #numericInput for maximum number of iterations
-                          column( width = 6,
-                                  numericInput(inputId = "maximum_iterations",
-                                               label = HTML("Maximum iterations"),
-                                               min = 1000,
-                                               max = 10000,
-                                               value = 1000)
-                          ),
+                            #numericInput for maximum number of iterations
+                            column( width = 6,
+                                    numericInput(inputId = "maximum_iterations",
+                                                 label = HTML("Maximum iterations"),
+                                                 min = 1000,
+                                                 max = 10000,
+                                                 value = 1000)
+                            ),
 
-                          #numericInput for maximum number of sub-intervals
-                          column( width = 6,
-                                  numericInput(inputId = "maximum_sub_intervals",
-                                               label = HTML("Maximum sub-intervals:"),
-                                               min = 100,
-                                               max = 10000,
-                                               value = 100)
-                          ),
+                            #numericInput for maximum number of sub-intervals
+                            column( width = 6,
+                                    numericInput(inputId = "maximum_sub_intervals",
+                                                 label = HTML("Maximum sub-intervals:"),
+                                                 min = 100,
+                                                 max = 10000,
+                                                 value = 100)
+                            ),
 
 
-                          #radioButtons for which tail to search for estimator in
-                          column( width = 6,
-                                  radioButtons(inputId = "tail_type",
-                                               label = HTML("Tail type for median unbiased
+                            #radioButtons for which tail to search for estimator in
+                            column( width = 6,
+                                    radioButtons(inputId = "tail_type",
+                                                 label = HTML("Tail type for median unbiased
                                          estimation:"),
-                                               choices = list(
-                                                 "Two-tailed" = "two",
-                                                 "Upper tail only" = "upper",
-                                                 "Lower tail only" = "lower"
-                                               ),
-                                               selected = "upper")
+                                                 choices = list(
+                                                   "Two-tailed" = "two",
+                                                   "Upper tail only" = "upper",
+                                                   "Lower tail only" = "lower"
+                                                 ),
+                                                 selected = "upper")
+                            )
                           )
-                        )
-       )
-  ),
+         )
+    ),
 
 
 
 
 
 
-  #TRIAL DATA CARD ---------------------------------------------------------------
-  card( tags$h5("Trial Data"),
-        p("Card for inputting the realised trial data for the chosen trial
-            type. Input single values as a number (e.g. 50) and multiple values
-            as a comma separated list (e.g. 100, 200, ..., 500)."),
-        br(),
-        tags$h6("Inputs:" , style = "margin-top: -8px;"),
+    #TRIAL DATA CARD ---------------------------------------------------------------
+    card( tags$h5("Trial Data"),
+          p("Card for inputting the realised trial data for the chosen trial
+            type. Input single values labelled 'SV' as a number (e.g. 50) and
+            multiple values labelled 'MV' as a comma separated list
+            (e.g. 100, 200, ..., 500)."),
+          br(),
+          tags$h6("Inputs:" , style = "margin-top: -8px;"),
 
-        #BINARY DATA (SINGLE_ARM) ------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+          #BINARY DATA (SINGLE_ARM) ------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                                input.binary_trial_type == 'Single-arm'",
-                         tags$h6("", style = "margin-top: -8px;"),
+                           tags$h6("", style = "margin-top: -8px;"),
 
-                         fluidRow(
+                           fluidRow(
 
-                           #textInput panel for cumulative sample size (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "single_arm_sample_size_binary",
-                                             label = HTML("Cumulative stagewise sample size
+                             #textInput panel for cumulative sample size (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "single_arm_sample_size_binary",
+                                               label = HTML("Cumulative stagewise sample size
                                          in the Experimental arm (comma separated
                                          input):"),
-                                             value = "101, 143")
-                           ),
+                                               value = "101, 143")
+                             ),
 
-                           #textInput panel for cumulative number of events (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "single_arm_events",
-                                             label = HTML("Cumulative number of events in
+                             #textInput panel for cumulative number of events (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "single_arm_events",
+                                               label = HTML("Cumulative number of events in
                                          the Experimental arm (comma separated
                                          input):"),
-                                             value = "20, 36")
-                           ),
+                                               value = "20, 36")
+                             ),
 
-                           #textInput panel for the assumed control event rate
-                           column( width = 6,
-                                   textInput(inputId = "event_rate_null",
-                                             label = HTML("Assumed event rate under the null
+                             #textInput panel for the assumed control event rate
+                             column( width = 6,
+                                     textInput(inputId = "event_rate_null",
+                                               label = HTML("Assumed event rate under the null
                                      hypothesis (comma separated values):"),
-                                             value = "0.125")
+                                               value = "0.125")
+                             )
                            )
-                         )
-        ),
+          ),
 
 
-        #BINARY DATA (TWO-ARM) ---------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Binary' &
+          #BINARY DATA (TWO-ARM) ---------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Binary' &
                                input.binary_trial_type == 'Two-arm'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(
 
-                           #textInput panel for cumulative sample size (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "control_sample_size_binary",
-                                             label = HTML("Cumulative stagewise sample size
+                             #textInput panel for cumulative sample size (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "control_sample_size_binary",
+                                               label = HTML("Cumulative stagewise sample size
                                          in the Control arm (comma separated
                                          input):"),
-                                             value = "97, 134")
-                           ),
+                                               value = "97, 134")
+                             ),
 
-                           #textInput panel for cumulative number of events (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "control_events",
-                                             label = HTML("Cumulative number of events in
+                             #textInput panel for cumulative number of events (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "control_events",
+                                               label = HTML("Cumulative number of events in
                                          the Control arm (comma separated input):"),
-                                             value = "12, 21")
-                           ),
+                                               value = "12, 21")
+                             ),
 
-                           #textInput panel for cumulative sample size (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "experimental_sample_size_binary",
-                                             label = HTML("Cumulative stagewise sample size
+                             #textInput panel for cumulative sample size (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "experimental_sample_size_binary",
+                                               label = HTML("Cumulative stagewise sample size
                                          in the Experimental arm (comma separated
                                          input):"),
-                                             value = "101, 143")
-                           ),
+                                               value = "101, 143")
+                             ),
 
-                           #textInput panel for cumulative number of events (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "experimental_events",
-                                             label = HTML("Cumulative number of events in
+                             #textInput panel for cumulative number of events (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "experimental_events",
+                                               label = HTML("Cumulative number of events in
                                          the Experimental arm (comma separated
                                          input):"),
-                                             value = "27, 42")
+                                               value = "27, 42")
+                             )
                            )
-                         )
-        ),
+          ),
 
-        #NORMAL DATA (SINGLE-ARM) ------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Normal' &
+          #NORMAL DATA (SINGLE-ARM) ------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Normal' &
                        input.normal_trial_type == 'Single-arm'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(
 
-                           #textInput panel for mean at each stage (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "means_normal_single_arm",
-                                             label = HTML("Experimental arm mean per
+                             #textInput panel for mean at each stage (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "means_normal_single_arm",
+                                               label = HTML("Experimental arm mean per
                                  stage (comma separated input):"),
-                                             value = "5.2, 6")
-                           ),
+                                               value = "5.2, 6")
+                             ),
 
-                           #textInput panel for sample size at each stage (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "sample_size_normal_single_arm",
-                                             label = HTML("Cumulative number of events in
+                             #textInput panel for sample size at each stage (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "sample_size_normal_single_arm",
+                                               label = HTML("Cumulative number of events in
                                      the Experimental arm (comma separated input):"),
-                                             value = "34, 78")
-                           ),
+                                               value = "34, 78")
+                             ),
 
-                           #textInput panel for known variance in the experimental arm
-                           column(width = 6,
-                                  textInput(inputId = "variance_normal_single_arm",
-                                            label = HTML("Known variance in the experimental arm:)"),
-                                            value = "25")
-                           ),
+                             #textInput panel for known variance in the experimental arm
+                             column(width = 6,
+                                    textInput(inputId = "variance_normal_single_arm",
+                                              label = HTML("Known variance in the experimental arm:)"),
+                                              value = "25")
+                             ),
 
-                           #textInput panel for mean under null hypothesis
-                           column(width = 6,
-                                  textInput(inputId = "mean_null_normal_single_arm",
-                                            label = HTML("Mean under the null hypothesis"),
-                                            value = "3")
+                             #textInput panel for mean under null hypothesis
+                             column(width = 6,
+                                    textInput(inputId = "mean_null_normal_single_arm",
+                                              label = HTML("Mean under the null hypothesis"),
+                                              value = "3")
+                             )
                            )
-                         )
-        ),
+          ),
 
-        #NORMAL DATA (PARALLEL) --------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Normal' &
+          #NORMAL DATA (PARALLEL) --------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Normal' &
                        input.normal_trial_type == 'Parallel'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(
 
-                           #textInput panel for mean at each stage (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_control_arm_means",
-                                             label = HTML("Control arm mean per
+                             #textInput panel for mean at each stage (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_control_arm_means",
+                                               label = HTML("Control arm mean per
                                  stage (comma separated input):"),
-                                             value = "3, 2.8")
-                           ),
+                                               value = "3, 2.8")
+                             ),
 
-                           #textInput panel for mean at each stage(experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_experimental_arm_means",
-                                             label = HTML("Experimental arm mean per
+                             #textInput panel for mean at each stage(experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_experimental_arm_means",
+                                               label = HTML("Experimental arm mean per
                                  stage (comma separated input):"),
-                                             value = "5.2, 6")
-                           ),
+                                               value = "5.2, 6")
+                             ),
 
-                           #textInput panel for sample size at each stage (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_control_sample_size_normal",
-                                             label = HTML("Cumulative stagewise sample size
+                             #textInput panel for sample size at each stage (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_control_sample_size_normal",
+                                               label = HTML("Cumulative stagewise sample size
                                          in the Control arm (comma separated
                                          input):"),
-                                             value = "34, 78")
-                           ),
+                                               value = "34, 78")
+                             ),
 
-                           #textInput panel for sample size at each stage (experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_experimental_sample_size_normal",
-                                             label = HTML("Cumulative stagewise sample size in the
+                             #textInput panel for sample size at each stage (experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_experimental_sample_size_normal",
+                                               label = HTML("Cumulative stagewise sample size in the
                                Experimental arm (comma separated
                                        input):"),
-                                             value = "34, 78")
-                           ),
+                                               value = "34, 78")
+                             ),
 
-                           #textInput panel for known variance (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_variance_control",
-                                             label = HTML("Known variance in the control arm:"),
-                                             value = "25")
-                           ),
+                             #textInput panel for known variance (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_variance_control",
+                                               label = HTML("Known variance in the control arm:"),
+                                               value = "25")
+                             ),
 
-                           #textInput panel for known variance (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "parallel_variance_experimental",
-                                             label = HTML("Known variance in the experimental arm:"),
-                                             value = "25")
+                             #textInput panel for known variance (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "parallel_variance_experimental",
+                                               label = HTML("Known variance in the experimental arm:"),
+                                               value = "25")
+                             )
                            )
-                         )
-        ),
+          ),
 
-        #NORMAL DATA (PAIRED) ----------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Normal' &
+          #NORMAL DATA (PAIRED) ----------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Normal' &
                        input.normal_trial_type == 'Paired'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(
 
-                           #textInput panel for mean at each stage (control arm)
-                           column( width = 6,
-                                   textInput(inputId = "paired_control_arm_means",
-                                             label = HTML("Control arm mean per
+                             #textInput panel for mean at each stage (control arm)
+                             column( width = 6,
+                                     textInput(inputId = "paired_control_arm_means",
+                                               label = HTML("Control arm mean per
                                  stage (comma separated input):"),
-                                             value = "3, 2.8")
-                           ),
+                                               value = "3, 2.8")
+                             ),
 
-                           #textInput panel for mean at each stage(experimental arm)
-                           column( width = 6,
-                                   textInput(inputId = "paired_experimental_arm_means",
-                                             label = HTML("Experimental arm mean per
+                             #textInput panel for mean at each stage(experimental arm)
+                             column( width = 6,
+                                     textInput(inputId = "paired_experimental_arm_means",
+                                               label = HTML("Experimental arm mean per
                                  stage (comma separated input):"),
-                                             value = "5.2, 6")
-                           ),
+                                               value = "5.2, 6")
+                             ),
 
-                           #textInput panel for the number of pairs of observations
-                           column(width = 6,
-                                  textInput(inputId = "paired_sample_size",
-                                            label = HTML("Number of pairs of observations
+                             #textInput panel for the number of pairs of observations
+                             column(width = 6,
+                                    textInput(inputId = "paired_sample_size",
+                                              label = HTML("Number of pairs of observations
                                     at each stage:"),
-                                            value = "34, 78")
-                           ),
+                                              value = "34, 78")
+                             ),
 
-                           #textInput panel for the variance of pairs
-                           column(width = 6,
-                                  textInput(inputId = "paired_variance_normal",
-                                            label = HTML("Known variance:"),
-                                            value = "25")
+                             #textInput panel for the variance of pairs
+                             column(width = 6,
+                                    textInput(inputId = "paired_variance_normal",
+                                              label = HTML("Known variance:"),
+                                              value = "25")
+                             )
                            )
-                         )
-        ),
+          ),
 
-        #NORMAL DATA (CROSSOVER) -------------------------------------------------------
-        conditionalPanel(condition = "input.endpoint_type == 'Normal' &
+          #NORMAL DATA (CROSSOVER) -------------------------------------------------------
+          conditionalPanel(condition = "input.endpoint_type == 'Normal' &
                        input.normal_trial_type == 'Two Period Crossover'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(
 
-                           #textInput panel for means in the AB period group
-                           column(width = 6,
-                                  textInput(inputId = "crossover_means_ab",
-                                            label = HTML("Mean in the AB period group at
+                             #textInput panel for means in the AB period group
+                             column(width = 6,
+                                    textInput(inputId = "crossover_means_ab",
+                                              label = HTML("Mean in the AB period group at
                                     each stage:"),
-                                            value = "5.2, 6")
-                           ),
+                                              value = "5.2, 6")
+                             ),
 
-                           #textInput panel for means in the BA period group
-                           column(width = 6,
-                                  textInput(inputId = "crossover_means_ba",
-                                            label = HTML("Mean in the BA period group at
+                             #textInput panel for means in the BA period group
+                             column(width = 6,
+                                    textInput(inputId = "crossover_means_ba",
+                                              label = HTML("Mean in the BA period group at
                                       each stage:"),
-                                            value = "3, 2.8")
-                           ),
+                                              value = "3, 2.8")
+                             ),
 
-                           #textInput panel for sample size at each stage in the AB period group
-                           column(width = 6,
-                                  textInput(inputId = "sample_size_ab_crossover",
-                                            label = HTML("Sample size in the AB period group
+                             #textInput panel for sample size at each stage in the AB period group
+                             column(width = 6,
+                                    textInput(inputId = "sample_size_ab_crossover",
+                                              label = HTML("Sample size in the AB period group
                                     at each stage:"),
-                                            value = "34, 78")
-                           ),
+                                              value = "34, 78")
+                             ),
 
-                           #textInput panel for sample size at each stage in the AB period group
-                           column(width = 6,
-                                  textInput(inputId = "sample_size_ba_crossover",
-                                            label = HTML("Sample size in the BA period group
+                             #textInput panel for sample size at each stage in the AB period group
+                             column(width = 6,
+                                    textInput(inputId = "sample_size_ba_crossover",
+                                              label = HTML("Sample size in the BA period group
                                       at each stage:"),
-                                            value = "34, 78")
-                           ),
+                                              value = "34, 78")
+                             ),
 
-                           #textInput for the variance in the crossover trial
-                           column(width = 6,
-                                  textInput(inputId = "variance_crossover_ab",
-                                            label = HTML("Variance in AB period arm:"),
-                                            value = "25")
-                           ),
+                             #textInput for the variance in the crossover trial
+                             column(width = 6,
+                                    textInput(inputId = "variance_crossover_ab",
+                                              label = HTML("Variance in AB period arm:"),
+                                              value = "25")
+                             ),
 
-                           #textInput for the variance in the crossover trial
-                           column(width = 6,
-                                  textInput(inputId = "variance_crossover_ba",
-                                            label = HTML("Variance in BA period arm:"),
-                                            value = "25")
+                             #textInput for the variance in the crossover trial
+                             column(width = 6,
+                                    textInput(inputId = "variance_crossover_ba",
+                                              label = HTML("Variance in BA period arm:"),
+                                              value = "25")
+                             )
                            )
-                         )
-        ),
+          ),
 
-        #TIME TO EVENT DATA ------------------------------------------------------------
+          #TIME TO EVENT DATA ------------------------------------------------------------
 
-        #fileinput for Time to Event data
-        conditionalPanel(condition = "input.endpoint_type == 'Time to Event' &
+          #fileinput for Time to Event data
+          conditionalPanel(condition = "input.endpoint_type == 'Time to Event' &
                     input.time_to_event_trial_type == 'Two-arm'",
-                         tags$h6("", style = "margin-top: -8px;"),
-                         fluidRow(column( width = 12,
-                                          fileInput(inputId = "time_to_event_data_csv",
-                                                    label = HTML("Please input a csv file containing the
+                           tags$h6("", style = "margin-top: -8px;"),
+                           fluidRow(column( width = 12,
+                                            fileInput(inputId = "time_to_event_data_csv",
+                                                      label = HTML("Please input a csv file containing the
                                        survival analysis data:"),
-                                                    accept = c(".csv"))
-                         )
-                         )
-        )
-  ),
+                                                      accept = c(".csv"))
+                           )
+                           )
+          )
+    ),
 
 
 
 
 
-  #OUTPUT PANEL ------------------------------------------------------------------
-  card( tags$h5("Output"),
+    #OUTPUT PANEL ------------------------------------------------------------------
+    card( tags$h5("Output"),
 
-        #actionButton that calculates estimate when pressed
-        actionButton(inputId = "calc_butt",
-                     label = "Calculate estimator"),
+          #actionButton that calculates estimate when pressed
+          actionButton(inputId = "calc_butt",
+                       label = "Calculate estimator"),
 
-        #uiOutput displaying either the estimate or any errors that occur
-        uiOutput(outputId = "text")
-  ),
-  col_widths = c(6,6,12),
-  row_heights = c(4,2,2)
-)
+          #uiOutput displaying either the estimate or any errors that occur
+          uiOutput(outputId = "text")
+    ),
+    col_widths = c(6,6,12),
+    row_heights = c(4,2,2)
+  )
 )
 
 

@@ -2,10 +2,10 @@
 % Please edit documentation in R/run_app.R
 \name{run_app}
 \alias{run_app}
-\title{Launch the Shiny App}
+\title{Launch the gsEstimators Shiny App}
 \usage{
-run_app()
+run_app(...)
 }
 \description{
-Starts the gsEstimators Shiny interface.
+This function runs the Shiny application bundled in the package.
 }
