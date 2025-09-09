@@ -10,42 +10,6 @@ library(mvtnorm)
 library(gsDesign)
 library(rootSolve)
 library(shinythemes)
-
-# Load data --------------------------------------------------------------------
-
-#load("")
-#thematic::thematic_shiny()
-
-#load r files containing estimators --------------------------------------------
-
-source("R/estimator_inputs/binary_estimators_single_arm.R")
-source("R/estimator_inputs/binary_estimators_two_arm.R")
-source("R/estimator_inputs/normal_estimators_single_arm.R")
-source("R/estimator_inputs/normal_estimators_parallel.R")
-source("R/estimator_inputs/normal_estimators_paired.R")
-source("R/estimator_inputs/normal_estimators_crossover.R")
-source("R/estimator_inputs/time_to_event_estimators.R")
-source("R/operating_characteristics/binary_data_operating_characteristics.R")
-source("R/operating_characteristics/normal_data_operating_characteristics.R")
-source("R/operating_characteristics/time_to_event_data_operating_characteristics.R")
-source("R/operating_characteristics/correlation_matrix.R")
-source("R/error_checking/vector_input_check.R")
-source("R/error_checking/stage_input_check.R")
-source("R/error_checking/limit_input_check.R")
-source("R/error_checking/binary_single_arm_input_check.R")
-source("R/error_checking/binary_two_arm_input_check.R")
-source("R/error_checking/normal_single_arm_input_check.R")
-source("R/error_checking/normal_parallel_input_check.R")
-source("R/error_checking/normal_paired_input_check.R")
-source("R/error_checking/normal_crossover_input_check.R")
-source("R/error_checking/time_to_event_check.R")
-source("R/estimators/mue.R")
-source("R/estimators/cmue.R")
-source("R/estimators/umvue.R")
-source("R/estimators/umvcue.R")
-source("R/estimators/ubc_mle.R")
-source("R/estimators/cbc_mle.R")
-
 # Define UI --------------------------------------------------------------------
 ui <- page_sidebar(
   theme = bs_theme(bootswatch = "cerulean"),
