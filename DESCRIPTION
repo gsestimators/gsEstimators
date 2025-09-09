@@ -8,8 +8,7 @@ Authors@R: c(
   )
 Description: Provides functions to calculate various estimators 
     (MLE, UMVUE, UBC-MLE, cMUE, etc.) for group sequential 
-    designs in clinical trials. Includes simulation support 
-    and tools for operating characteristics.
+    designs in clinical trials.-
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
