@@ -1,1 +1,0 @@
-#Input error checking for time to event data -----------------------------------
